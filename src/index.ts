@@ -1,20 +1,24 @@
 import express from "express";
-import dotenv from "dotenv";
+import { config } from "dotenv";
+import passport from "passport";
 import cors from "cors";
 import userController from "./user/user.controller";
+import authRoutes from "./auth/auth.route";
 
-dotenv.config();
+config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cors());
+app.use(passport.initialize());
 
 app.get("/api", (req, res) => {
   res.send({ message: "Hello World" });
 });
 
+app.use("/api/auth", authRoutes);
 app.use("/api/user", userController);
 
 app.use((req, res, next) => {
