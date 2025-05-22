@@ -3,6 +3,7 @@ import { config } from "dotenv";
 import passport from "passport";
 import cors from "cors";
 import userController from "./user/user.controller";
+import localStrategy from "./auth/local.strategy";
 import authRoutes from "./auth/auth.route";
 
 config();
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors());
 app.use(passport.initialize());
+passport.use(localStrategy);
 
 app.get("/api", (req, res) => {
   res.send({ message: "Hello World" });

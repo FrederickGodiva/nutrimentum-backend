@@ -1,7 +1,7 @@
 import { Strategy as LocalStrategy } from "passport-local";
 import { validateUser } from "./auth.service";
 
-export default new LocalStrategy(
+const strategy = new LocalStrategy(
   {
     usernameField: "username",
     passwordField: "password",
@@ -16,3 +16,5 @@ export default new LocalStrategy(
     }
   }
 );
+
+export default strategy;

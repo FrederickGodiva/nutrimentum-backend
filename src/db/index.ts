@@ -1,3 +1,3 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../../dist/generated/prisma/client";
 
 export const prisma = new PrismaClient();
