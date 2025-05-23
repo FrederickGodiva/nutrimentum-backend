@@ -5,6 +5,7 @@ import { Request, Response, NextFunction } from "express";
 import authRoutes from "./auth/auth.route";
 import userController from "./user/user.controller";
 import { errorHandler } from "./middleware/errorHandler";
+import passport from "../src/auth/passport";
 
 config();
 
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cors());
+app.use(passport.initialize());
 app.use(errorHandler);
 
 app.get("/api", (req: Request, res: Response) => {

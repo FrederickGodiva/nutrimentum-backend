@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from "express";
-import bcrypt from "bcryptjs";
-import { loginSchema, registerSchema, refreshTokenSchema } from "./auth.schema";
+import { registerSchema, refreshTokenSchema } from "./auth.schema";
 import {
   generateAccessToken,
   generateRefreshToken,
   register,
-  validateUser,
 } from "./auth.service";
 import { prisma } from "../db";
 import jwt from "jsonwebtoken";
+import passport from "./passport";
+import { User } from "../generated/prisma/client";
 
 export const registerUser = async (
   req: Request,
@@ -40,45 +40,50 @@ export const registerUser = async (
   }
 };
 
-export const loginUser = async (
+export const loginUser = (
   req: Request,
   res: Response,
   next: NextFunction,
-): Promise<void> => {
-  try {
-    const { username, password } = loginSchema.parse(req.body);
+): void => {
+  passport.authenticate(
+    "local",
+    { session: false },
+    async (
+      err: any,
+      user: User | false,
+      info: { message?: string } | undefined,
+    ) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res
+          .status(401)
+          .json({ error: info?.message || "Invalid credentials" });
+      }
 
-    const user = await validateUser(username, password);
-    if (!user || !user.password) {
-      res.status(401).json({ error: "Invalid credentials" });
-      return;
-    }
+      try {
+        const accessToken = generateAccessToken(user.id);
+        const refreshToken = generateRefreshToken(user.id);
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      res.status(401).json({ error: "Invalid credentials" });
-      return;
-    }
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { refreshToken },
+        });
 
-    const accessToken = generateAccessToken(user.id);
-    const refreshToken = generateRefreshToken(user.id);
+        const { password, ...userWithoutPassword } = user;
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { refreshToken },
-    });
-
-    const { password: _, ...userWithoutPassword } = user;
-
-    res.status(200).json({
-      message: "Login successful",
-      accessToken,
-      refreshToken,
-      user: userWithoutPassword,
-    });
-  } catch (err: any) {
-    next(err);
-  }
+        return res.json({
+          message: "Login successful",
+          accessToken,
+          refreshToken,
+          user: userWithoutPassword,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  )(req, res, next);
 };
 
 export const refreshAccessToken = async (
@@ -151,4 +156,30 @@ export const logoutUser = async (
     }
     next(err);
   }
+};
+
+export const currentUser = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
+  passport.authenticate(
+    "jwt",
+    { session: false },
+    async (
+      err: any,
+      user: User | false,
+    ) => {
+      if (err) return next(err);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      try {
+        const { password, ...userWithoutPassword } = user;
+
+        return res.json({ user: userWithoutPassword });
+      } catch (error) {
+        next(error);
+      }
+    },
+  )(req, res, next);
 };
