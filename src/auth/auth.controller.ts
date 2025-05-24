@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { registerSchema, refreshTokenSchema } from "./auth.schema";
+import { registerSchema, logoutSchema } from "./auth.schema";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -49,8 +49,8 @@ export const loginUser = (
     "local",
     { session: false },
     async (
-      err: any,
-      user: User | false,
+      err: Error | null,
+      user: User | null,
       info: { message?: string } | undefined,
     ) => {
       if (err) {
@@ -92,7 +92,7 @@ export const refreshAccessToken = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { refreshToken } = refreshTokenSchema.parse(req.body);
+    const { refreshToken } = logoutSchema.parse(req.body);
 
     const payload = jwt.verify(
       refreshToken,
@@ -136,7 +136,7 @@ export const logoutUser = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { refreshToken } = refreshTokenSchema.parse(req.body);
+    const { refreshToken } = logoutSchema.parse(req.body);
 
     const payload = jwt.verify(
       refreshToken,
@@ -167,8 +167,8 @@ export const currentUser = (
     "jwt",
     { session: false },
     async (
-      err: any,
-      user: User | false,
+      err: Error | null,
+      user: User | null,
     ) => {
       if (err) return next(err);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
