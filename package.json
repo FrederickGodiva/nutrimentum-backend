@@ -4,6 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "db:migrate": "npx prisma migrate reset --force dev",
+    "db:push": "npx prisma db push",
     "start": "nodemon ./src/index.ts"
   },
   "keywords": [],
