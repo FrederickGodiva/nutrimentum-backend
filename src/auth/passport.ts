@@ -12,7 +12,7 @@ passport.use(
       const user = await prisma.user.findUnique({ where: { username } });
       if (!user) return done(null, false, { message: "Incorrect username." });
 
-      const isValid = await bcrypt.compare(password, user.password);
+      const isValid = await bcrypt.compare(password, user.password!);
       if (!isValid)
         return done(null, false, { message: "Incorrect password." });
 
@@ -73,8 +73,7 @@ passport.use(
           const user = await prisma.user.create({
             data: {
               username : profile.id,
-              password : "dumm1_g00gl3_pw_ch4ng3_th15_l4t3r",
-              email: email, // check if profile contain email
+              email: email, 
               FederatedIdentity: {
                 create: {
                   provider: 'google',
