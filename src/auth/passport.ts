@@ -1,8 +1,10 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
+import { VerifyCallback, Strategy as GoogleStrategy } from "passport-google-oauth20";
 import bcrypt from "bcryptjs";
 import { prisma } from "../db";
+import { undefined } from "zod";
 
 passport.use(
   new LocalStrategy(async (username, password, done) => {
@@ -40,5 +42,64 @@ passport.use(
     },
   ),
 );
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      callbackURL: 'http://localhost:8000/api/auth/google',
+      scope: [ 'profile', 'email'],
+  }, 
+  async(accessToken: string, refreshToken: string, profile:any, done:VerifyCallback ) => {
+    try{
+      if (!profile.emails || !profile.emails[0] || !profile.emails[0].value) {
+        return done(new Error('Email not provided by Google'), false);
+      }
+
+      const email = profile.emails[0].value;
+
+      const row = await prisma.federatedIdentity.findUnique({
+        where : {
+          provider_identity_unique: { 
+            provider: 'google',
+            providerId: profile.id,
+          }
+        }
+      })
+
+      if(!row){
+        const result = await prisma.$transaction(async (prisma) => {
+          const user = await prisma.user.create({
+            data: {
+              username : profile.id,
+              password : "dumm1_g00gl3_pw_ch4ng3_th15_l4t3r",
+              email: email, // check if profile contain email
+              FederatedIdentity: {
+                create: {
+                  provider: 'google',
+                  providerId: profile.id,
+                  profileData: profile._json
+                }
+              }
+            },
+            include: {
+              FederatedIdentity: true
+            }
+          });
+    
+          return user;
+        });
+
+        return done(null, result);
+      }else{
+        const user = await prisma.user.findUnique({ where: { id : row.userId} });
+        if (!user) return done(null, false);
+        return done(null, user);
+      }
+    }catch(err){
+      return done(err, false);
+    }
+  }));
 
 export default passport;
