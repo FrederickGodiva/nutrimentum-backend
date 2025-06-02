@@ -15,14 +15,28 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  username     String    @unique
-  password     String
-  goals        String?
-  refreshToken String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime? @updatedAt
+  id                String              @id @default(cuid())
+  email             String              @unique
+  username          String              @unique
+  password          String
+  goals             String?
+  refreshToken      String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime?           @updatedAt
+  FederatedIdentity FederatedIdentity[]
+}
+
+model FederatedIdentity {
+  id          Int      @id @default(autoincrement())
+  userId      String   @map("user_id")
+  provider    String
+  providerId  String   @map("provider_id")
+  profileData Json?    @map("profile_data")
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId], name: "provider_identity_unique")
+  @@map("federated_identities")
 }
 
 model Food {
