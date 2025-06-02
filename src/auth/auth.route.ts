@@ -5,10 +5,12 @@ import {
   refreshAccessToken,
   logoutUser,
   currentUser,
+  googleAuthCallback
 } from "./auth.controller";
 
 const router = Router();
 
+router.get('/google', googleAuthCallback);
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.get("/me", currentUser);

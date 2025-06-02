@@ -40,6 +40,51 @@ export const registerUser = async (
   }
 };
 
+export const googleAuthCallback = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  passport.authenticate('google',
+  { session: false },
+  async (
+    err: Error | null,
+    user: User | null,
+    info: { message?: string } | undefined,
+  ) => {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return res
+        .status(401)
+        .json({ error: info?.message || "Invalid credentials" });
+    }
+
+    try {
+      const accessToken = generateAccessToken(user.id);
+      const refreshToken = generateRefreshToken(user.id);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { refreshToken },
+      });
+
+      const { password, ...userWithoutPassword } = user;
+
+      return res.json({
+        message: "Login successful",
+        accessToken,
+        refreshToken,
+        user: userWithoutPassword,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+  )(req, res, next);
+}
+
 export const loginUser = (
   req: Request,
   res: Response,
